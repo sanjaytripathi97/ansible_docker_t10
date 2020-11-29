@@ -1,0 +1,59 @@
+- hosts: all
+  tasks:
+     
+     - name: Creating a docker repository
+       yum_repository:
+         name: docker
+         description: 'docker repo. packages'
+         baseurl: 'https://download.docker.com/linux/centos/7/x86_64/stable/'
+         gpgcheck: 'no'
+
+     - name: Installing Python3 as well as pip3
+       package:
+         name: 'python36'
+         state: present
+
+     - name: Installing Docker
+       package:
+         name: 'docker-ce-18.09.1-3.el7.x86_64'
+         state: present
+          
+     - name: Starting service(Docker)
+       service:
+         name: docker
+         state: started
+
+     - pip: 
+         name: docker-py
+
+     - name: Pulling Docker Image(httpd)
+       community.general.docker_image:
+         name: httpd
+         source: pull
+     
+     - name: Making Directory for Mounting
+       file:
+         path: '/root/httpd_container_1'      
+         state: directory      
+
+     - name: Copying file into mounted directory
+       copy:
+         src: 'index.html'
+         dest: '/root/httpd_container_1/'
+
+     - name: Create a Docker Container
+       community.general.docker_container:
+         name: httpd_container_1
+         image: httpd 
+         ports:
+           - '8080:80'
+         state: started
+         detach: yes
+         volumes: /root/httpd_container_1/:/usr/local/apache2/htdocs/
+     
+     - name: Firewall rule Applied on Port:8080
+       firewalld:
+         port: "8080/tcp"
+         state: enabled
+         permanent: yes
+         immediate: yes     
